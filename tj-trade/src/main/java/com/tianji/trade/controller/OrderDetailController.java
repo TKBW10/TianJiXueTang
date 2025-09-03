@@ -1,6 +1,7 @@
 package com.tianji.trade.controller;
 
 
+import com.tianji.api.dto.course.CoursePurchaseInfoDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.trade.domain.query.OrderDetailPageQuery;
 import com.tianji.trade.domain.vo.OrderDetailAdminVO;
@@ -10,10 +11,10 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -44,4 +45,26 @@ public class OrderDetailController {
         return detailService.queryOrdersDetailProgress(id);
     }
 
+    @ApiOperation("校验课程是否购买，是否过期")
+    @GetMapping("/course/{id}")
+    public Boolean checkCourseOrderInfo(@PathVariable("id") Long courseId){
+        return detailService.checkCourseOrderInfo(courseId);
+    }
+
+    @ApiOperation("统计课程报名人数")
+    @GetMapping("/enrollNum")
+    public Map<Long, Integer> countEnrollNumOfCourse(@RequestParam("courseIdList") List<Long> courseIdList){
+        return detailService.countEnrollNumOfCourse(courseIdList);
+    }
+
+    @ApiOperation("统计学生报名课程数量")
+    @GetMapping("/enrollCourse")
+    public Map<Long, Integer> countEnrollCourseOfStudent(@RequestParam("studentIds") List<Long> studentIds){
+        return detailService.countEnrollCourseOfStudent(studentIds);
+    }
+
+    @GetMapping("purchaseInfo")
+    public CoursePurchaseInfoDTO getPurchaseInfoOfCourse(@RequestParam("courseId") Long courseId){
+        return detailService.getPurchaseInfoOfCourse(courseId);
+    }
 }

@@ -16,8 +16,10 @@ import lombok.Data;
 public class CourseTeacherVO {
     @ApiModelProperty("老师课程关系id")
     private Long id;
-    @ApiModelProperty("老师照片")
+    @ApiModelProperty("老师头像")
     private String icon;
+    @ApiModelProperty("形象照")
+    private String photo;
     @ApiModelProperty("老师姓名")
     private String name;
     @ApiModelProperty("老师介绍")

@@ -11,7 +11,7 @@ import com.tianji.api.dto.course.MediaQuoteDTO;
 import com.tianji.api.dto.course.SectionInfoDTO;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.domain.dto.PageDTO;
-import com.tianji.common.exceptions.UnauthorizedException;
+import com.tianji.common.exceptions.ForbiddenException;
 import com.tianji.common.utils.*;
 import com.tianji.media.constants.FileErrorInfo;
 import com.tianji.media.domain.dto.MediaDTO;
@@ -24,7 +24,7 @@ import com.tianji.media.enums.FileStatus;
 import com.tianji.media.mapper.MediaMapper;
 import com.tianji.media.service.IMediaService;
 import com.tianji.media.storage.IMediaStorage;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,6 +42,7 @@ import static com.tianji.media.constants.FileErrorInfo.MEDIA_NOT_EXISTS;
  * @since 2022-06-30
  */
 @Service
+@RequiredArgsConstructor
 public class MediaServiceImpl extends ServiceImpl<MediaMapper, Media> implements IMediaService {
 
     private final IMediaStorage mediaStorage;
@@ -51,15 +52,6 @@ public class MediaServiceImpl extends ServiceImpl<MediaMapper, Media> implements
     private final LearningClient learningClient;
 
     private final UserClient userClient;
-
-    @Autowired
-    public MediaServiceImpl(
-            IMediaStorage mediaStorage, CourseClient courseClient, LearningClient learningClient, UserClient userClient) {
-        this.mediaStorage = mediaStorage;
-        this.courseClient = courseClient;
-        this.learningClient = learningClient;
-        this.userClient = userClient;
-    }
 
     @Override
     public String getUploadSignature() {
@@ -72,9 +64,9 @@ public class MediaServiceImpl extends ServiceImpl<MediaMapper, Media> implements
         SectionInfoDTO sectionInfo = courseClient.sectionInfo(sectionId);
         Long courseId = sectionInfo.getCourseId();
         // 2.查询用户课程表，是否是购买过的课程
-        Boolean isMyLesson = learningClient.checkMyLesson(courseId);
+        Long lessonId = learningClient.isLessonValid(courseId);
 
-        if(BooleanUtils.isTrue(isMyLesson)){
+        if(lessonId != null){
             // 2.1.是，查询媒资信息，直接获取签名
             Media media = getById(sectionInfo.getMediaId());
             AssertUtils.isNotNull(media, MEDIA_NOT_EXISTS);
@@ -90,7 +82,7 @@ public class MediaServiceImpl extends ServiceImpl<MediaMapper, Media> implements
         Boolean trailer = sectionInfo.getTrailer();
         if(BooleanUtils.isFalse(trailer)) {
             // 2.3.不免费，抛出异常
-            throw new UnauthorizedException(FileErrorInfo.MEDIA_NOT_FREE);
+            throw new ForbiddenException(FileErrorInfo.MEDIA_NOT_FREE);
         }
 
         // 3.免费，获取课程信息

@@ -6,13 +6,6 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/**
- * 课程信息
- * @ClassName CourseDTO
- * @Author wusongsong
- * @Date 2022/7/18 13:12
- * @Version
- **/
 @ApiModel("课程信息")
 @Data
 public class CourseDTO {
@@ -34,8 +27,10 @@ public class CourseDTO {
     private LocalDateTime updateTime;
     @ApiModelProperty("价格")
     private Integer price;
-    @ApiModelProperty("课程有效期天数")
+    @ApiModelProperty("视频播放时长")
     private Integer duration;
+    @ApiModelProperty("课程有效期天数")
+    private Integer validDuration;
     @ApiModelProperty("是否免费")
     private Boolean free;
     @ApiModelProperty("发布时间")
@@ -50,5 +45,12 @@ public class CourseDTO {
     private Integer courseType;
     @ApiModelProperty("更新时间")
     private Long updater;
-
+    @ApiModelProperty("课程进行到的步骤，1：基本信息，2：目录，3：课程视频，4：课程题目，5：课程老师")
+    private Integer step;
+    @ApiModelProperty(value = "课程报名人数（销量）", example = "3920")
+    private Integer sold = 0;
+    @ApiModelProperty(value = "课程评价得分，45代表4.5星", example = "35")
+    private Integer score = 0;
+    @ApiModelProperty("课程是否禁用,0:禁用，1：启用")
+    private Integer enable;
 }

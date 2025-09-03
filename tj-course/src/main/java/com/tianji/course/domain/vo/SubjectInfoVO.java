@@ -10,13 +10,12 @@ import java.util.List;
 /**
  * 题目详情
  *
- * @ClassName SubjectInfoVO
- * @Author wusongsong
- * @Date 2022/7/11 20:54
- * @Version
+ * @author wusongsong
+ * @since 2022/7/11 20:54
+ * @version 1.0.0
  **/
 @Data
-@ApiModel("题目详情")
+@ApiModel(description = "题目详情")
 public class SubjectInfoVO {
     @ApiModelProperty("题目id")
     private Long id;
@@ -30,8 +29,10 @@ public class SubjectInfoVO {
     private Integer difficulty;
     @ApiModelProperty("分值")
     private Integer score;
-
+    @ApiModelProperty("更新时间")
     private LocalDateTime updateTime;
+    @ApiModelProperty("更新人")
+    private String updaterName;
     @ApiModelProperty("课程名称信息")
     private List<CourseSimpleInfoVO> courses;
 
@@ -43,6 +44,12 @@ public class SubjectInfoVO {
     private String analysis;
     @ApiModelProperty("课程id列表")
     private List<Long> courseIds;
+    @ApiModelProperty(value = "被引用次数", example = "10")
+    private Integer useTimes;
+    @ApiModelProperty("作答次数")
+    private Integer answerTimes;
+    @ApiModelProperty("正确率")
+    private Double correctRate;
 
 
 }

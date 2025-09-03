@@ -2,15 +2,18 @@ package com.tianji.common.domain.query;
 
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.common.constants.Constant;
 import com.tianji.common.utils.StringUtils;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+import lombok.experimental.Accessors;
 
 import javax.validation.constraints.Min;
 
 @Data
 @ApiModel(description = "分页请求参数")
+@Accessors(chain = true)
 public class PageQuery {
     public static final Integer DEFAULT_PAGE_SIZE = 20;
     public static final Integer DEFAULT_PAGE_NUM = 1;
@@ -33,9 +36,16 @@ public class PageQuery {
         return (pageNo - 1) * pageSize;
     }
 
-    public <T> Page<T> toMpPage() {
+    public <T> Page<T> toMpPage(OrderItem ... orderItems) {
         Page<T> page = new Page<>(pageNo, pageSize);
-        //是否排序
+        // 是否手动指定排序方式
+        if (orderItems != null && orderItems.length > 0) {
+            for (OrderItem orderItem : orderItems) {
+                page.addOrder(orderItem);
+            }
+            return page;
+        }
+        // 前端是否有排序字段
         if (StringUtils.isNotEmpty(sortBy)){
             OrderItem orderItem = new OrderItem();
             orderItem.setAsc(isAsc);
@@ -46,7 +56,7 @@ public class PageQuery {
     }
 
     public <T> Page<T> toMpPage(String defaultSortBy, boolean isAsc) {
-        if (StringUtils.isEmpty(sortBy)){
+        if (StringUtils.isBlank(sortBy)){
             sortBy = defaultSortBy;
             this.isAsc = isAsc;
         }
@@ -56,5 +66,8 @@ public class PageQuery {
         orderItem.setColumn(sortBy);
         page.addOrder(orderItem);
         return page;
+    }
+    public <T> Page<T> toMpPageDefaultSortByCreateTimeDesc() {
+        return toMpPage(Constant.DATA_FIELD_NAME_CREATE_TIME, false);
     }
 }

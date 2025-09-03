@@ -1,7 +1,9 @@
 package com.tianji.course.domain.dto;
 
+import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.utils.CollUtils;
+import com.tianji.common.utils.StringUtils;
 import com.tianji.common.validate.Checker;
 import com.tianji.common.validate.annotations.EnumValid;
 import com.tianji.course.constants.SubjectConstants;
@@ -15,10 +17,9 @@ import java.util.List;
 
 /**
  * 题目保存模型
- * @ClassName SubjectSaveDTO
- * @Author wusongsong
- * @Date 2022/7/11 21:10
- * @Version
+ * @author wusongsong
+ * @since 2022/7/11 21:10
+ * @version 1.0.0
  **/
 @ApiModel("题目保存模型")
 @Data
@@ -53,7 +54,6 @@ public class SubjectSaveDTO implements Checker {
     @NotNull(message = "题目答案不能为空")
     private List<Integer> answers;
     @ApiModelProperty("解析")
-    @Size(max = 300, min = 5, message = "答案解析长度为5-300")
     private String analysis;
 
     @Override
@@ -70,6 +70,11 @@ public class SubjectSaveDTO implements Checker {
             //选择题答案 不能超过选项数
             if(answerOptionMax > options.size()){
                 throw new BizIllegalException("存在正确的答案找不到选项");
+            }
+            if(StringUtils.isNotEmpty(analysis)
+                    && (StringUtils.length(analysis) < 5
+                    || StringUtils.length(analysis) > 300)) {
+                throw new BadRequestException("答案解析长度为5-300");
             }
         }
 

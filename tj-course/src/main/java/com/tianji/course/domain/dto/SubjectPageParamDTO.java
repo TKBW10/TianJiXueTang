@@ -13,7 +13,7 @@ import java.util.List;
  * @Version
  **/
 @Data
-@ApiModel("题目分页参数")
+@ApiModel(description = "题目分页参数")
 public class SubjectPageParamDTO {
     @ApiModelProperty("一级课程分类")
     private Long firstCateId;

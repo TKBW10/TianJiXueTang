@@ -1,6 +1,5 @@
 package com.tianji.course.controller;
 
-import com.tianji.api.dto.course.CategoryBasicDTO;
 import com.tianji.course.domain.dto.CategoryAddDTO;
 import com.tianji.course.domain.dto.CategoryDisableOrEnableDTO;
 import com.tianji.course.domain.dto.CategoryListDTO;
@@ -85,13 +84,13 @@ public class CategoryController {
 
     @GetMapping("all")
     @ApiOperation("获取所有的课程分类信息，只包含id,名称，课程分类关系")
-    public List<SimpleCategoryVO> all() {
-        return categoryService.all();
+    public List<SimpleCategoryVO> all(@RequestParam(value = "admin",required = false, defaultValue = "0") Boolean admin) {
+        return categoryService.all(admin);
     }
 
     @GetMapping("getAllOfOneLevel")
     @ApiOperation("获取所有的课程分类，不分层")
-    public List<CategoryBasicDTO> allOfOneLevel() {
+    public List<CategoryVO> allOfOneLevel() {
         return categoryService.allOfOneLevel();
     }
 }

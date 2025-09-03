@@ -64,6 +64,12 @@ public class OrderDetail implements Serializable {
      * 课程学习有效期，单位：月。从付款时间开始算
      */
     private Integer validDuration;
+
+    /**
+     * 课程学习过期时间
+     */
+    private LocalDateTime courseExpireTime;
+
     /**
      * 折扣金额
      */
@@ -85,11 +91,6 @@ public class OrderDetail implements Serializable {
     private Integer refundStatus;
 
     /**
-     * 优惠券id
-     */
-    private Long couponId;
-
-    /**
      * 支付渠道名称
      */
     private String payChannel;
@@ -107,12 +108,12 @@ public class OrderDetail implements Serializable {
     /**
      * 创建人
      */
-    @TableField(fill = FieldFill.INSERT)
+
     private Long creater;
 
     /**
      * 更新人
      */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
+
     private Long updater;
 }

@@ -1,12 +1,14 @@
 package com.tianji.trade.domain.po;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <p>
@@ -19,7 +21,7 @@ import java.time.LocalDateTime;
 @Data
 @EqualsAndHashCode(callSuper = false)
 @Accessors(chain = true)
-@TableName("`order`")
+@TableName(value = "`order`", autoResultMap = true)
 public class Order implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -71,7 +73,8 @@ public class Order implements Serializable {
     /**
      * 优惠券id
      */
-    private Long couponId;
+    @TableField(typeHandler = JacksonTypeHandler.class)
+    private List<Long> couponIds;
 
     /**
      * 创建订单时间
@@ -106,13 +109,13 @@ public class Order implements Serializable {
     /**
      * 创建人
      */
-    @TableField(fill = FieldFill.INSERT)
+
     private Long creater;
 
     /**
      * 更新人
      */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
+
     private Long updater;
 
     /**

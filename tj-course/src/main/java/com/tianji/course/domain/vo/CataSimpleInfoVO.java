@@ -7,13 +7,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * @ClassName CataSimpleInfoVO
- * @Author wusongsong
- * @Date 2022/7/26 9:28
- * @Version
+ * @author wusongsong
+ * @since 2022/7/26 9:28
+ * @version 1.0.0
  **/
 @Data
-@ApiModel("目录简单信息")
+@ApiModel(description = "目录简单信息")
 @AllArgsConstructor
 @NoArgsConstructor
 public class CataSimpleInfoVO {
@@ -25,4 +24,6 @@ public class CataSimpleInfoVO {
     private String index;
     @ApiModelProperty("数字序号，不包含章序号")
     private Integer cIndex;
+    @ApiModelProperty("数字序号章序号")
+    private Integer chapterIndex;
 }

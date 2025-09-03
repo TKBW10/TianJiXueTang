@@ -24,8 +24,8 @@ public interface ICourseCatalogueDraftService extends IService<CourseCatalogueDr
     /**
      * 保存课程对应的目录结构
      *
-     * @param courseId
-     * @param cataSaveDTOS
+     * @param courseId 课程id
+     * @param cataSaveDTOS 课程目录信息
      */
     void save(Long courseId, List<CataSaveDTO> cataSaveDTOS, Integer step);
 
@@ -91,5 +91,14 @@ public interface ICourseCatalogueDraftService extends IService<CourseCatalogueDr
      * @return
      */
     Integer totalSectionNums(Long courseId);
+
+    /**
+     * 根据类型查询课程小节/章/测试id列表
+     *
+     * @param courseId
+     * @param types
+     * @return
+     */
+    List<Long> queryCataIdsOfCourse(Long courseId, List<Integer> types);
 
 }

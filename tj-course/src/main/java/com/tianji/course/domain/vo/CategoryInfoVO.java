@@ -6,10 +6,9 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * @ClassName CategoryInfoVO
- * @Author wusongsong
- * @Date 2022/7/10 15:06
- * @Version
+ * @author wusongsong
+ * @since 2022/7/10 15:06
+ * @version 1.0.0
  **/
 @Data
 public class CategoryInfoVO {

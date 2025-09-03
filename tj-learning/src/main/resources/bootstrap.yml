@@ -1,5 +1,5 @@
 server:
-  port: 8087  #端口
+  port: 8090  #端口
   tomcat:
     uri-encoding: UTF-8   #服务编码
 spring:
@@ -22,11 +22,14 @@ spring:
             refresh: false
           - data-id: shared-feign.yaml # 共享feign配置
             refresh: false
+          - data-id: shared-mq.yaml # 共享mq配置
+            refresh: false
 tj:
   swagger:
     enable: true
+    enableResponseWrap: true
     package-path: com.tianji.learning.controller
-    title: 智汇云课堂 - 学习中心接口文档
+    title: 天机学堂 - 学习中心接口文档
     description: 该服务包含用户学习的各种辅助功能
     contact-name: 传智教育·研究院
     contact-url: http://www.itcast.cn/
@@ -34,3 +37,6 @@ tj:
     version: v1.0
   jdbc:
     database: tj_learning
+  auth:
+    resource:
+      enable: true

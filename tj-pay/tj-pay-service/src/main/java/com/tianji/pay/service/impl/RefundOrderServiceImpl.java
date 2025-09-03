@@ -96,7 +96,7 @@ public class RefundOrderServiceImpl extends ServiceImpl<RefundOrderMapper, Refun
         }
     }
 
-    @Lock(formatter = PayConstants.RedisKeyFormatter.REFUND_APPLY, time = 10)
+    @Lock(name = PayConstants.RedisKeyFormatter.REFUND_APPLY, leaseTime = 10, autoUnlock = false)
     private RefundOrder checkIdempotent(RefundApplyDTO refundApplyDTO) {
         // 1.查询出退款单对应的支付单
         PayOrder payOrder = payOrderService.queryByBizOrderNo(refundApplyDTO.getBizOrderNo());
@@ -159,7 +159,7 @@ public class RefundOrderServiceImpl extends ServiceImpl<RefundOrderMapper, Refun
         RefundOrder refundOrder = queryByBizRefundOrder(bizRefundOrderId);
         // 2.判断是否为空
         if (refundOrder == null) {
-            throw new BadRequestException(PayErrorInfo.REFUND_ORDER_NOT_FOUND);
+            return null;
         }
         // 3.判断退款单是否退款成功
         if (refundOrder.success()) {
@@ -210,7 +210,7 @@ public class RefundOrderServiceImpl extends ServiceImpl<RefundOrderMapper, Refun
         page.addOrder(new OrderItem("id", true));
         // 2.查询
         Page<RefundOrder> result = lambdaQuery()
-                .eq(RefundOrder::getStatus, RefundStatus.UN_KNOWN)
+                .eq(RefundOrder::getStatus, RefundStatus.UN_KNOWN.getValue())
                 .page(page);
         return PageDTO.of(result);
     }

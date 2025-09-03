@@ -11,9 +11,7 @@ import com.tianji.search.config.InterestsProperties;
 import com.tianji.search.constants.SearchErrorInfo;
 import com.tianji.search.domain.po.Course;
 import com.tianji.search.domain.query.CoursePageQuery;
-import com.tianji.search.domain.vo.CourseAdminVO;
 import com.tianji.search.domain.vo.CourseVO;
-import com.tianji.search.enums.CourseStatus;
 import com.tianji.search.repository.CourseRepository;
 import com.tianji.search.service.IInterestsService;
 import com.tianji.search.service.ISearchService;
@@ -61,7 +59,7 @@ public class SearchServiceImpl implements ISearchService {
     @Override
     public List<CourseVO> queryCourseByCateId(Long cateLv2Id) {
         return queryTopNByCategoryIdLv2sAndFree(
-                CollUtils.singletonList(cateLv2Id), false, PUBLISH_TIME, false, 10);
+                CollUtils.singletonList(cateLv2Id), null, PUBLISH_TIME, false, 10);
     }
 
     @Override
@@ -106,15 +104,15 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     private List<CourseVO> queryTopNByCategoryIdLv2sAndFree(
-            List<Long> categoryIds, boolean isFree, String sortBy, boolean isASC, int n) {
+            List<Long> categoryIds, Boolean isFree, String sortBy, boolean isASC, int n) {
         // 1.准备Request
         SearchRequest request = new SearchRequest(CourseRepository.INDEX_NAME);
-        // 1.1.必须是上架课程
         BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery();
-        queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.STATUS, CourseStatus.ON_THE_MARKET.getValue()));
-        // 1.2.是否免费
-        queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.FREE, isFree));
-        // 1.3.分类id
+        // 1.1.是否免费
+        if(isFree != null) {
+            queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.FREE, isFree));
+        }
+        // 1.2.分类id
         if (categoryIds != null) {
             if (categoryIds.size() == 1) {
                 queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.CATEGORY_ID_LV2, categoryIds.get(0)));
@@ -122,7 +120,9 @@ public class SearchServiceImpl implements ISearchService {
                 queryBuilder.filter(QueryBuilders.termsQuery(CourseRepository.CATEGORY_ID_LV2, categoryIds));
             }
         }
-        request.source().query(queryBuilder);
+        if(isFree != null || categoryIds != null) {
+            request.source().query(queryBuilder);
+        }
         // 1.3.TopN
         request.source().size(n).sort(sortBy, isASC ? SortOrder.ASC : SortOrder.DESC);
         // 2.发送请求
@@ -164,13 +164,9 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     @Override
-    public PageDTO<CourseAdminVO> queryCoursesForAdmin(CoursePageQuery query) {
+    public PageDTO<CourseVO> queryCoursesForPortal(CoursePageQuery query) {
         // 1.搜索数据
-        if(StringUtils.isBlank(query.getSortBy())){
-            query.setSortBy(PUBLISH_TIME);
-            query.setIsAsc(false);
-        }
-        SearchResponse response = searchForResponse(query, CourseAdminVO.EXCLUDE_FIELDS);
+        SearchResponse response = searchForResponse(query, CourseVO.EXCLUDE_FIELDS);
         // 2.解析响应
         PageDTO<Course> result = handleSearchResponse(response, query.getPageSize());
         // 3.处理VO
@@ -178,52 +174,13 @@ public class SearchServiceImpl implements ISearchService {
         if (CollUtils.isEmpty(list)) {
             return PageDTO.empty(result.getTotal(), result.getPages());
         }
-        List<CourseAdminVO> vos = new ArrayList<>(list.size());
-        // 3.1.查询更新人信息
-        Set<Long> updaterIds = list.stream().map(Course::getUpdater).filter(l -> l != 0).collect(Collectors.toSet());
-        Map<Long, String> updaterMap = null;
-        if (CollUtils.isNotEmpty(updaterIds)) {
-            List<UserDTO> updaters = userClient.queryUserByIds(updaterIds);
-            if (CollUtils.isNotEmpty(updaters)) {
-                updaterMap = updaters.stream()
-                        .collect(Collectors.toMap(UserDTO::getId, UserDTO::getName));
-            }
-        }
-        for (Course c : list) {
-            // 3.2.转换
-            CourseAdminVO vo = BeanUtils.toBean(c, CourseAdminVO.class);
-            // 3.3.查询分类信息
-            String categoryNames = categoryCache.getCategoryNames(c.getCategoryIds());
-            // 3.4.保存更新人
-            if (updaterMap != null) {
-                vo.setUpdater(updaterMap.getOrDefault(c.getUpdater(), "未知"));
-            }
-            vo.setCategories(categoryNames);
-            vos.add(vo);
-        }
-        return new PageDTO<>(result.getTotal(), result.getPages(), vos);
-    }
-
-    @Override
-    public PageDTO<CourseVO> queryCoursesForPortal(CoursePageQuery query) {
-        // 1.只查询上架课程
-        query.setStatus(CourseStatus.ON_THE_MARKET.getValue());
-        // 2.搜索数据
-        SearchResponse response = searchForResponse(query, CourseVO.EXCLUDE_FIELDS);
-        // 3.解析响应
-        PageDTO<Course> result = handleSearchResponse(response, query.getPageSize());
-        // 4.处理VO
-        List<Course> list = result.getList();
-        if (CollUtils.isEmpty(list)) {
-            return PageDTO.empty(result.getTotal(), result.getPages());
-        }
-        // 4.1.查询教师信息
+        // 3.1.查询教师信息
         List<Long> teacherIds = list.stream().map(Course::getTeacher).collect(Collectors.toList());
         List<UserDTO> teachers = userClient.queryUserByIds(teacherIds);
         AssertUtils.isNotEmpty(teachers, SearchErrorInfo.TEACHER_NOT_EXISTS);
         Map<Long, String> teacherMap = teachers.stream()
                 .collect(Collectors.toMap(UserDTO::getId, UserDTO::getName));
-        // 4.2.转换VO
+        // 3.2.转换VO
         List<CourseVO> vos = new ArrayList<>(list.size());
         for (Course c : list) {
             CourseVO vo = BeanUtils.toBean(c, CourseVO.class);
@@ -313,22 +270,21 @@ public class SearchServiceImpl implements ISearchService {
         if (query.getFree() != null) {
             queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.FREE, query.getFree()));
         }
-        if (query.getStatus() != null) {
-            queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.STATUS, query.getStatus()));
-        }
         if (query.getType() != null) {
             queryBuilder.filter(QueryBuilders.termQuery(CourseRepository.TYPE, query.getType()));
         }
         LocalDateTime beginTime = query.getBeginTime();
         LocalDateTime endTime = query.getEndTime();
-        RangeQueryBuilder rangeQuery = QueryBuilders.rangeQuery(CourseRepository.UPDATE_TIME);
-        if (beginTime != null) {
-            rangeQuery.gte(beginTime);
+        if(beginTime != null || endTime != null) {
+            RangeQueryBuilder rangeQuery = QueryBuilders.rangeQuery(CourseRepository.UPDATE_TIME);
+            if (beginTime != null) {
+                rangeQuery.gte(beginTime);
+            }
+            if (endTime != null) {
+                rangeQuery.lte(endTime);
+            }
+            queryBuilder.filter(rangeQuery);
         }
-        if (endTime != null) {
-            rangeQuery.lte(endTime);
-        }
-        queryBuilder.filter(rangeQuery);
         // 4.写入request
         request.source().query(queryBuilder);
     }

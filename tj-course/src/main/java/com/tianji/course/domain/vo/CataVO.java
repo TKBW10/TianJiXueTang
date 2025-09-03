@@ -39,4 +39,8 @@ public class CataVO {
     private Boolean canUpdate = false;
     @ApiModelProperty("该章的所有小节和练习")
     private List<CataVO> sections;
+    @ApiModelProperty("已上架最大序号，查看时值为空，编辑查看时小节必有值")
+    private Integer maxIndexOnShelf;
+    @ApiModelProperty("已上架小节最大序号，查看时，值为空，编辑查看时小节必有字段")
+    private Integer maxSectionIndexOnShelf;
 }

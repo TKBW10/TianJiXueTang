@@ -21,9 +21,13 @@ public class RefundApplyVO {
     private String payChannel;
     @ApiModelProperty("退款方式")
     private String refundChannel;
+    @ApiModelProperty("退款流水单号")
+    private Long refundOrderNo;
 
     @ApiModelProperty("申请退款原因")
     private String refundReason;
+    @ApiModelProperty("申请退款说明")
+    private String questionDesc;
 
     @ApiModelProperty("学员昵称")
     private String studentName;

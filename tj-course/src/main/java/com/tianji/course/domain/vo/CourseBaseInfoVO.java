@@ -7,13 +7,12 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * @ClassName CourseBaseInfoVO
- * @Author wusongsong
- * @Date 2022/7/11 11:59
- * @Version
+ * @author wusongsong
+ * @since 2022/7/11 11:59
+ * @version 1.0.0
  **/
 @Data
-@ApiModel("课程基本信息")
+@ApiModel(description = "课程基本信息")
 public class CourseBaseInfoVO {
     @ApiModelProperty("课程id")
     private Long id;
@@ -25,16 +24,22 @@ public class CourseBaseInfoVO {
     private Long thirdCateId;
     @ApiModelProperty("课程创建人")
     private String createrName;
+    private Long creater;
     @ApiModelProperty("创建时间")
     private LocalDateTime createTime;
     @ApiModelProperty("封面url")
     private String coverUrl;
     @ApiModelProperty("更新时间")
     private LocalDateTime updateTime;
+    @ApiModelProperty("更新人名称")
+    private String updaterName;
+    private Long updater;
     @ApiModelProperty("课时总数量,去掉章，测试，用于编辑回显时该值为空")
     private Integer cataTotalNum;
     @ApiModelProperty("课程评分，用于编辑回显时该值为空")
     private Double coureScore = 0d;
+    @ApiModelProperty("课程评分")
+    private Integer score;
     @ApiModelProperty("报名人数，用于编辑回显时该值为空")
     private Integer enrollNum = 0;
     @ApiModelProperty("学习人数，用于编辑回显时该值为空")
@@ -68,5 +73,7 @@ public class CourseBaseInfoVO {
     private Boolean free;
     @ApiModelProperty("步骤,1:已保存基本信息，2：已保存课程目录，3：已保存课程视频，4：已保存题目，5：已保存课程老师")
     private Integer step;
+    @ApiModelProperty("课程状态，1：待上架，2：已上架，3：下架，4：已完结")
+    private Integer status;
 
 }

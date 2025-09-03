@@ -4,18 +4,19 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * @ClassName SubjectConstants
- * @Author wusongsong
- * @Date 2022/7/17 13:07
- * @Version
+ * @author wusongsong
+ * @since 2022/7/17 13:07
+ * @version 1.0.0
  **/
 public class SubjectConstants {
 
     @AllArgsConstructor
     @Getter
     public enum Type {
-        SIGNLE_CHOICE(1, "单选题"), MUtiple_CHOICE(2, "多选题"),
-        NON_DIRECTIONAL_CHOICE(3, "不定向选择题"), JUDGEMENT_QUESTION(4, "判断题");
+        SIGNLE_CHOICE(1, "单选题"),
+        MUtiple_CHOICE(2, "多选题"),
+        NON_DIRECTIONAL_CHOICE(3, "不定向选择题"),
+        JUDGEMENT_QUESTION(4, "判断题");
         private Integer type;
         private String desc;
 

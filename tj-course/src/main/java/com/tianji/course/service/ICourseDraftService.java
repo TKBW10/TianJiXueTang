@@ -2,10 +2,17 @@ package com.tianji.course.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.tianji.api.dto.course.CourseDTO;
+import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.course.domain.dto.CourseBaseInfoSaveDTO;
+import com.tianji.course.domain.dto.CoursePageQuery;
 import com.tianji.course.domain.po.CourseDraft;
 import com.tianji.course.domain.vo.CourseBaseInfoVO;
+import com.tianji.course.domain.vo.CoursePageVO;
 import com.tianji.course.domain.vo.CourseSaveVO;
+import com.tianji.course.domain.vo.NameExistVO;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -20,8 +27,7 @@ public interface ICourseDraftService extends IService<CourseDraft> {
     /**
      * 保存草稿
      *
-     * @param courseBaseInfoSaveDTO
-     * @return
+     * @param courseBaseInfoSaveDTO 课程基础信息
      */
     CourseSaveVO save(CourseBaseInfoSaveDTO courseBaseInfoSaveDTO);
 
@@ -36,8 +42,8 @@ public interface ICourseDraftService extends IService<CourseDraft> {
 
     /**
      * 修改课程草稿进行到哪一步了，步骤只能一步步升，不能跳填，不能往回填
-     * @param id
-     * @param step
+     * @param id 课程id
+     * @param step 完成的步数
      */
     void updateStep(Long id, Integer step);
 
@@ -48,6 +54,8 @@ public interface ICourseDraftService extends IService<CourseDraft> {
      */
     void upShelf(Long id);
 
+    void checkBeforeUpShelf(Long id);
+
     /**
      * 课程下架
      *
@@ -57,8 +65,8 @@ public interface ICourseDraftService extends IService<CourseDraft> {
 
     /**
      * 获取课程的搜索信息
-     * @param id
-     * @return
+     * @param id 课程id
+     * @return 课程数据
      */
     CourseDTO getCourseDTOById(Long id);
 
@@ -69,4 +77,30 @@ public interface ICourseDraftService extends IService<CourseDraft> {
      */
     void delete(Long id);
 
+    /**
+     * 分页查询更新时间
+     * @param coursePageQuery 课程分页参数
+     * @return 课程分页数据
+     */
+    PageDTO<CoursePageVO> queryForPage(CoursePageQuery coursePageQuery);
+
+    /**
+     * 校验名称是否存在，或者被其他课程占用
+     * @param name 课程名称
+     * @param id 当前课程名称
+     */
+    NameExistVO checkName(String name, Long id);
+
+    /**
+     * 查询课程id列表中存在的id
+     * @param idList
+     * @return
+     */
+    List<Long> queryExists(List<Long> idList);
+
+    /**
+     * 统计草稿中的课程分类拥有的课程数量
+     * @return
+     */
+    Map<Long, Integer> countCourseNumOfCategory();
 }

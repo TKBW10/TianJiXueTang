@@ -4,10 +4,10 @@ import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.client.course.CourseClient;
-import com.tianji.api.dto.course.CoursePurchaseInfoDTO;
-import com.tianji.api.dto.order.OrderBasicDTO;
+import com.tianji.api.constants.CourseStatus;
+import com.tianji.api.dto.course.CourseSimpleInfoDTO;
+import com.tianji.api.dto.trade.OrderBasicDTO;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
-import com.tianji.common.constants.Constant;
 import com.tianji.common.constants.MqConstants;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
@@ -25,10 +25,7 @@ import com.tianji.trade.domain.dto.PlaceOrderDTO;
 import com.tianji.trade.domain.po.Order;
 import com.tianji.trade.domain.po.OrderDetail;
 import com.tianji.trade.domain.query.OrderPageQuery;
-import com.tianji.trade.domain.vo.OrderDetailVO;
-import com.tianji.trade.domain.vo.OrderPageVO;
-import com.tianji.trade.domain.vo.OrderVO;
-import com.tianji.trade.domain.vo.PlaceOrderResultVO;
+import com.tianji.trade.domain.vo.*;
 import com.tianji.trade.mapper.OrderMapper;
 import com.tianji.trade.service.ICartService;
 import com.tianji.trade.service.IOrderDetailService;
@@ -41,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static com.tianji.common.constants.ErrorInfo.Msg.OPERATE_FAILED;
@@ -70,29 +68,28 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public PlaceOrderResultVO placeOrder(PlaceOrderDTO placeOrderDTO) {
         Long userId = UserContext.getUser();
         // 1.查询课程费用信息，如果不可购买，这里直接报错
-        List<CoursePurchaseInfoDTO> coursePurchaseInfos = courseClient.checkCoursePurchase(placeOrderDTO.getCourseIds());
-
+        List<CourseSimpleInfoDTO> courseInfos = getOnShelfCourse(placeOrderDTO.getCourseIds());
         // 2.封装订单信息
         Order order = new Order();
         // 2.1.计算订单金额
-        Integer totalAmount = coursePurchaseInfos.stream()
-                .map(CoursePurchaseInfoDTO::getPrice).reduce(Integer::sum).orElse(0);
+        Integer totalAmount = courseInfos.stream()
+                .map(CourseSimpleInfoDTO::getPrice).reduce(Integer::sum).orElse(0);
         // TODO 2.2.计算优惠金额
-        Integer discountAmount = 0;
-        Integer realAmount = totalAmount - discountAmount;
+        order.setDiscountAmount(0);
+        Integer realAmount = totalAmount - order.getDiscountAmount();
         // 2.3.封装其它信息
         order.setUserId(userId);
         order.setTotalAmount(totalAmount);
-        order.setDiscountAmount(discountAmount);
         order.setRealAmount(realAmount);
         order.setStatus(OrderStatus.NO_PAY.getValue());
+        order.setMessage(OrderStatus.NO_PAY.getProgressName());
         // 2.4.订单id
-        Long orderId = IdWorker.getId(order);
+        Long orderId = placeOrderDTO.getOrderId();
         order.setId(orderId);
 
         // 3.封装订单详情
-        List<OrderDetail> orderDetails = new ArrayList<>(coursePurchaseInfos.size());
-        for (CoursePurchaseInfoDTO courseInfo : coursePurchaseInfos) {
+        List<OrderDetail> orderDetails = new ArrayList<>(courseInfos.size());
+        for (CourseSimpleInfoDTO courseInfo : courseInfos) {
             orderDetails.add(packageOrderDetail(courseInfo, order));
         }
 
@@ -111,6 +108,24 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .build();
     }
 
+    private List<CourseSimpleInfoDTO> getOnShelfCourse(List<Long> courseIds) {
+        // 1.查询课程
+        List<CourseSimpleInfoDTO> courseInfos = courseClient.getSimpleInfoList(courseIds);
+        LocalDateTime now = LocalDateTime.now();
+        // 2.判断状态
+        for (CourseSimpleInfoDTO courseInfo : courseInfos) {
+            // 2.1.检查课程是否上架
+            if(!CourseStatus.SHELF.equalsValue(courseInfo.getStatus())){
+                throw new BizIllegalException(TradeErrorInfo.COURSE_NOT_FOR_SALE);
+            }
+            // 2.2.检查课程是否过期
+            if(courseInfo.getPurchaseEndTime().isBefore(now)){
+                throw new BizIllegalException(TradeErrorInfo.COURSE_EXPIRED);
+            }
+        }
+        return courseInfos;
+    }
+
 
     @Override
     @Transactional
@@ -118,12 +133,12 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         Long userId = UserContext.getUser();
         // 1.查询课程信息
         List<Long> cIds = CollUtils.singletonList(courseId);
-        List<CoursePurchaseInfoDTO> courseInfos = courseClient.checkCoursePurchase(cIds);
+        List<CourseSimpleInfoDTO> courseInfos = getOnShelfCourse(cIds);
         if (CollUtils.isEmpty(courseInfos)) {
             // 课程不存在
             throw new BizIllegalException(TradeErrorInfo.COURSE_NOT_EXISTS);
         }
-        CoursePurchaseInfoDTO courseInfo = courseInfos.get(0);
+        CourseSimpleInfoDTO courseInfo = courseInfos.get(0);
         if(!courseInfo.getFree()){
             // 非免费课程，直接报错
             throw new BizIllegalException(TradeErrorInfo.COURSE_NOT_FREE);
@@ -152,7 +167,13 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         rabbitMqHelper.send(
                 MqConstants.Exchange.ORDER_EXCHANGE,
                 MqConstants.Key.ORDER_PAY_KEY,
-                OrderBasicDTO.builder().orderId(orderId).userId(userId).courseIds(cIds).build());
+                OrderBasicDTO.builder()
+                        .orderId(orderId)
+                        .userId(userId)
+                        .courseIds(cIds)
+                        .finishTime(order.getFinishTime())
+                        .build()
+        );
         // 6.返回vo
         return PlaceOrderResultVO.builder()
                 .orderId(orderId)
@@ -161,7 +182,30 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
                 .build();
     }
 
-    private OrderDetail packageOrderDetail(CoursePurchaseInfoDTO courseInfo, Order order) {
+    @Override
+    public OrderConfirmVO prePlaceOrder(List<Long> courseIds) {
+        // 1.查询课程信息
+        List<CourseSimpleInfoDTO> courseInfos = courseClient.getSimpleInfoList(courseIds);
+        if (CollUtils.isEmpty(courseInfos)) {
+            throw new BizIllegalException(TradeErrorInfo.COURSE_NOT_EXISTS);
+        }
+        List<OrderCourseVO> courses = BeanUtils.copyList(courseInfos, OrderCourseVO.class);
+        // 2.计算总价
+        int total = courseInfos.stream().mapToInt(CourseSimpleInfoDTO::getPrice).sum();
+        // TODO 3.计算折扣
+        int discountAmount = 0;
+        // 4.生成订单id
+        long orderId = IdWorker.getId();
+        // 5.组织返回
+        OrderConfirmVO vo = new OrderConfirmVO();
+        vo.setOrderId(orderId);
+        vo.setTotalAmount(total);
+        vo.setDiscountAmount(discountAmount);
+        vo.setCourses(courses);
+        return vo;
+    }
+
+    private OrderDetail packageOrderDetail(CourseSimpleInfoDTO courseInfo, Order order) {
         OrderDetail detail = new OrderDetail();
         detail.setUserId(order.getUserId());
         detail.setOrderId(order.getId());
@@ -230,8 +274,21 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
 
     @Override
     public void deleteOrder(Long id) {
+        // 1.获取登录用户
+        Long userId = UserContext.getUser();
+        // 2.查询订单
+        Order order = getById(id);
+        if (order == null) {
+            return;
+        }
+        // 3.判断订单所属用户与当前登录用户是否一致
+        if(!Objects.equals(userId, order.getUserId())){
+            // 不一致，说明不是当前用户的订单，结束
+            throw new BadRequestException("不能删除他人订单");
+        }
+        // 4.删除订单
         boolean success = removeById(id);
-        if (success) {
+        if (!success) {
             throw new DbException(OPERATE_FAILED);
         }
     }
@@ -240,7 +297,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     public PageDTO<OrderPageVO> queryMyOrderPage(OrderPageQuery pageQuery) {
         Long userId = UserContext.getUser();
         // 1.分页排序条件
-        Page<Order> p = pageQuery.toMpPage(Constant.DATA_FIELD_NAME_CREATE_TIME, false);
+        Page<Order> p = pageQuery.toMpPageDefaultSortByCreateTimeDesc();
         // 2.分页查询订单
         Integer status = pageQuery.getStatus();
         Page<Order> page = lambdaQuery()
@@ -258,10 +315,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         List<OrderDetail> details = detailService.queryByOrderIds(orderIds);
         // 4.2.将订单明细分组，key是订单id，值是订单下的所有detail
         Map<Long, List<OrderDetailVO>> detailMap = details.stream()
-                .map(od -> BeanUtils.copyBean(od, OrderDetailVO.class, (d, v) -> v.setCanRefund(
-                        // 订单已经支付，且 退款没有在进行中，标记为可退款状态
-                        OrderStatus.canRefund(d.getStatus()) && !RefundStatus.inProgress(v.getRefundStatus())
-                )))
+                .map(od -> BeanUtils.copyBean(od, OrderDetailVO.class))
                 .collect(Collectors.groupingBy(OrderDetailVO::getOrderId));
         // 5.转换VO
         List<OrderPageVO> list = new ArrayList<>(orderIds.size());
@@ -289,7 +343,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         // 3.1.订单
         OrderVO vo = BeanUtils.toBean(order, OrderVO.class);
         // 3.2.订单详情
-        List<OrderDetailVO> dvs = BeanUtils.copyList(details, OrderDetailVO.class);
+        List<OrderDetailVO> dvs = BeanUtils.copyList(details, OrderDetailVO.class, (d, v) -> v.setCanRefund(
+                // 订单已经支付，且 退款没有在进行中，标记为可退款状态
+                OrderStatus.canRefund(d.getStatus()) && !RefundStatus.inProgress(v.getRefundStatus())
+        ));
         vo.setDetails(dvs);
         // 3.3.订单进度
         vo.setProgressNodes(detailService.packageProgressNodes(order, null));
@@ -335,14 +392,18 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         o.setMessage("用户支付成功");
         updateById(o);
         // 3.更新订单条目
-        detailService.markDetailSuccessByOrderId(o.getId(), payResult.getPayChannel());
+        detailService.markDetailSuccessByOrderId(o.getId(), payResult.getPayChannel(), payResult.getSuccessTime());
         // 4.查询订单包含的课程信息
         List<Long> cIds = detailService.queryCourseIdsByOrderId(o.getId());
         // 5.发送MQ消息，通知报名成功
         rabbitMqHelper.send(
                 MqConstants.Exchange.ORDER_EXCHANGE,
-                MqConstants.Key.PAY_SUCCESS,
-                OrderBasicDTO.builder().orderId(o.getId()).userId(order.getUserId()).courseIds(cIds).build());
+                MqConstants.Key.ORDER_PAY_KEY,
+                OrderBasicDTO.builder()
+                        .orderId(o.getId()).userId(order.getUserId()).courseIds(cIds)
+                        .finishTime(o.getPayTime())
+                        .build()
+        );
     }
 
 }

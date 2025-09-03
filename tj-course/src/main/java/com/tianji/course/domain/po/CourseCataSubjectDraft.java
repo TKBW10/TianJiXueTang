@@ -6,6 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -39,6 +40,8 @@ public class CourseCataSubjectDraft implements Serializable {
      * 题目id
      */
     private Long subjectId;
+
+    private LocalDateTime createTime;
 
 
 }

@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.api.cache.RoleCache;
 import com.tianji.api.client.user.UserClient;
-import com.tianji.api.dto.order.OrderBasicDTO;
+import com.tianji.api.dto.trade.OrderBasicDTO;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
 import com.tianji.common.constants.Constant;
@@ -15,7 +15,6 @@ import com.tianji.common.enums.UserType;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
 import com.tianji.common.exceptions.DbException;
-import com.tianji.common.exceptions.UnauthorizedException;
 import com.tianji.common.utils.*;
 import com.tianji.pay.sdk.client.PayClient;
 import com.tianji.pay.sdk.constants.PayChannel;
@@ -99,7 +98,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
         if(order == null){
             throw new BadRequestException(TradeErrorInfo.ORDER_NOT_EXISTS);
         }
-        if(!OrderStatus.canRefund(order.getStatus())){
+        if(!(OrderStatus.PAYED.equalsValue(order.getStatus()) || OrderStatus.REFUNDED.equalsValue(order.getStatus()))){
             // 订单状态未支付或已经完结，不能退款
             throw new BizIllegalException(TradeErrorInfo.ORDER_CANNOT_REFUND);
         }
@@ -110,17 +109,17 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
         boolean isStudent = UserType.STUDENT.equalsValue(userDTO.getType());
         if (!userId.equals(detail.getUserId()) && isStudent) {
             // 申请人不是订单中的用户，并且申请人也不是后台管理员，直接报错
-            throw new UnauthorizedException(TradeErrorInfo.NO_AUTH_REFUND);
+            throw new BizIllegalException(TradeErrorInfo.NO_AUTH_REFUND);
         }
 
         // 4.查询已经申请的退款次数
         List<RefundApply> refundApplies = queryByDetailId(refundFormDTO.getOrderDetailId());
         if (isStudent && refundApplies.size() >= 2) {
-            throw new UnauthorizedException(TradeErrorInfo.REFUND_TOO_MANY_TIMES);
+            throw new BizIllegalException(TradeErrorInfo.REFUND_TOO_MANY_TIMES);
         }
         // 5.判断最近一次退款的状态，如果退款在进行中，直接返回
         if (CollUtils.isNotEmpty(refundApplies) && RefundStatus.inProgress(refundApplies.get(0).getStatus())) {
-            throw new UnauthorizedException(TradeErrorInfo.REFUND_IN_PROGRESS);
+            throw new BizIllegalException(TradeErrorInfo.REFUND_IN_PROGRESS);
         }
 
         // 6.提交退款申请
@@ -130,6 +129,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
         refundApply.setUserId(detail.getUserId()); //退款订单所属人
         refundApply.setRefundAmount(detail.getRealPayAmount()); //退款金额
         refundApply.setRefundReason(refundFormDTO.getRefundReason()); //退款原因
+        refundApply.setQuestionDesc(refundFormDTO.getQuestionDesc()); //退款问题说明
         refundApply.setCreater(userId); //申请id
         if (isStudent) {
             refundApply.setMessage("用户申请退款");
@@ -148,6 +148,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
         o.setId(refundApply.getOrderId());
         o.setStatus(OrderStatus.REFUNDED.getValue());
         o.setRefundTime(LocalDateTime.now());
+        o.setMessage(isStudent ? "学员申请退款" : "管理员直接退款");
         int count = orderMapper.updateById(o);
         if (count < 1) {
             // 退款申请失败
@@ -396,6 +397,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
 
         vo.setPayChannel(PayChannel.desc(order.getPayChannel()));
         vo.setRefundChannel(RefundChannelEnum.desc(apply.getRefundChannel()));
+        vo.setRefundOrderNo(apply.getRefundOrderNo());
         return vo;
     }
 
@@ -442,14 +444,16 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
 
         // 4.如果是退款成功，要取消用户报名的课程
         if (status == RefundResultDTO.SUCCESS) {
-            // 4.1.查询子订单中的课程信息
-            List<Long> cIds = detailService.queryCourseIdsByOrderId(refundApply.getOrderId());
+            // 4.1.查询子订单信息
+            OrderDetail detail = detailService.getById(refundApply.getOrderDetailId());
             // 4.2.发送MQ消息，通知报名成功
             rabbitMqHelper.send(
                     MqConstants.Exchange.ORDER_EXCHANGE,
                     MqConstants.Key.ORDER_REFUND_KEY,
                     OrderBasicDTO.builder()
-                            .orderId(refundApply.getOrderId()).userId(refundApply.getUserId()).courseIds(cIds).build());
+                            .orderId(refundApply.getOrderId())
+                            .userId(refundApply.getUserId())
+                            .courseIds(CollUtils.singletonList(detail.getCourseId())).build());
         }
     }
 
@@ -492,7 +496,7 @@ public class RefundApplyServiceImpl extends ServiceImpl<RefundApplyMapper, Refun
         RefundResultDTO result = payClient.queryRefundResult(refundApply.getId());
         if (result == null) {
             // 退款数据不存在，放弃处理
-            return true;
+            return false;
         }
         // 3.处理退款结果
         handleRefundResult(result);

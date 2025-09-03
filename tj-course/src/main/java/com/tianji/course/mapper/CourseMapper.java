@@ -1,11 +1,11 @@
 package com.tianji.course.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.tianji.course.domain.dto.IdAndNumDTO;
+import com.tianji.api.dto.IdAndNumDTO;
+import com.tianji.course.domain.po.Category3PO;
 import com.tianji.course.domain.po.Course;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -21,8 +21,6 @@ public interface CourseMapper extends BaseMapper<Course> {
     @Select("select count(1) from course where name = #{name}")
     int countSameName(@Param("name") String name);
 
-    @Update("update course set status=#{po.status}, cover_url=#{po.coverUrl},purchase_end_time=" +
-            "#{po.purchaseEndTime},media_duration=#{po.mediaDuration} where id=#{po.id}")
     int updateVariableById(@Param("po") Course course);
 
     /**
@@ -36,4 +34,8 @@ public interface CourseMapper extends BaseMapper<Course> {
             "item='teacherId' separator=','>#{teacherId}</foreach>)" +
             " GROUP BY ct.teacher_id</script>")
     List<IdAndNumDTO> countCourseNumOfTeacher(@Param("teacherIds")List<Long> teacherIds);
+
+    @Select("select distinct first_cate_id as 'firstCateId',second_cate_id as 'secondCateId'," +
+            "third_cate_id as 'thirdCateId' from course where status=2")
+    List<Category3PO> queryCategoryIdWithCourse();
 }

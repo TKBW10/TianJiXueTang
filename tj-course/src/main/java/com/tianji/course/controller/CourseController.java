@@ -2,7 +2,9 @@ package com.tianji.course.controller;
 
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
+import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.validate.annotations.ParamChecker;
+import com.tianji.course.constants.CourseStatus;
 import com.tianji.course.domain.dto.*;
 import com.tianji.course.domain.vo.*;
 import com.tianji.course.service.*;
@@ -148,6 +150,12 @@ public class CourseController {
         courseDraftService.upShelf(courseIdDTO.getId());
     }
 
+    @GetMapping("checkBeforeUpShelf/{id}")
+    @ApiOperation("课程上架前校验")
+    public void checkBeforeUpShelf(@PathVariable("id") Long id){
+        courseDraftService.checkBeforeUpShelf(id);
+    }
+
     @PostMapping("downShelf")
     @ApiOperation("课程下架")
     public void downShelf(@RequestBody @Validated CourseIdDTO courseIdDTO) {
@@ -170,14 +178,10 @@ public class CourseController {
 
     @ApiOperation("根根条件列表获取课程信息")
     @GetMapping("/simpleInfo/list")
-    public List<CourseSimpleInfoVO> getSimpleInfoList(CourseSimpleInfoListDTO courseSimpleInfoListDTO) {
+    public List<CourseSimpleInfoDTO> getSimpleInfoList(CourseSimpleInfoListDTO courseSimpleInfoListDTO) {
         return courseService.getSimpleInfoList(courseSimpleInfoListDTO);
     }
 
-    @GetMapping("/simpleInfo/{id}")
-    public CourseSimpleInfoDTO getSimpleInfoById(@PathVariable("id") Long id){
-        return courseService.getSimpleInfoById(id);
-    }
     @ApiOperation("根据课程id，查询所有章节的序号")
     @GetMapping("/catas/index/list/{id}")
     @ApiImplicitParams(
@@ -191,5 +195,35 @@ public class CourseController {
     @GetMapping("generator")
     public CourseCataIdVO generator() {
         return new CourseCataIdVO(IdWorker.getId());
+    }
+
+    @ApiOperation("管理端课程搜索接口")
+    @GetMapping("/page")
+    public PageDTO<CoursePageVO> queryForPage(CoursePageQuery coursePageQuery) {
+        if(CourseStatus.NO_UP_SHELF.equals(coursePageQuery.getStatus()) ||
+        CourseStatus.DOWN_SHELF.equals(coursePageQuery.getStatus())){
+            //待上架已下架查询草稿
+            return courseDraftService.queryForPage(coursePageQuery);
+        }else {
+            //已上架已完结查询正式数据
+            return courseService.queryForPage(coursePageQuery);
+        }
+    }
+
+    @ApiOperation("校验课程名称是否已经存在")
+    @GetMapping("/checkName")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "id", value = "id"),
+            @ApiImplicitParam(name = "name", value = "课程名称")
+    })
+    public NameExistVO checkNameExist(@RequestParam(value = "id",required = false) Long id,
+                                      @RequestParam(value = "name") String name){
+        return courseService.checkName(name, id);
+    }
+
+    @ApiOperation("查询课程基本信息、目录、学习进度")
+    @GetMapping("/{id}/catalogs")
+    public CourseAndSectionVO queryCourseAndCatalogById(@PathVariable("id") Long courseId){
+        return courseService.queryCourseAndCatalogById(courseId);
     }
 }

@@ -19,9 +19,14 @@ public interface MqConstants {
 
         /*支付有关的交换机*/
         String PAY_EXCHANGE = "pay.topic";
+        /*交易服务延迟任务交换机*/
+        String TRADE_DELAY_EXCHANGE = "trade.delay.topic";
+
+         /*点赞记录有关的交换机*/
+        String LIKE_RECORD_EXCHANGE = "like.record.topic";
     }
     interface Queue {
-        String ERROR_QUEUE_PREFIX = "queue.error.";
+        String ERROR_QUEUE_TEMPLATE = "error.{}.queue";
     }
     interface Key{
         /*课程有关的 RoutingKey*/
@@ -35,20 +40,24 @@ public interface MqConstants {
         String ORDER_PAY_KEY = "order.pay";
         String ORDER_REFUND_KEY = "order.refund";
 
-        /*点赞互动问答的RoutingKey*/
-        String LIKE_REPLY_KEY = "reply.like";
-        String UNLIKE_REPLY_KEY = "reply.unlike";
+        /*积分相关RoutingKey*/
+        /* 写回答 */
         String WRITE_REPLY = "reply.new";
-
-        /*签到有关key*/
+        /* 签到 */
         String SIGN_IN = "sign.in";
-
-        /*学习有关key*/
+        /* 学习视频 */
         String LEARN_SECTION = "section.learned";
-
-        /*笔记*/
+        /* 写笔记 */
         String WRITE_NOTE = "note.new";
+        /* 笔记被采集 */
         String NOTE_GATHERED = "note.gathered";
+
+        /*点赞的RoutingKey*/
+        String LIKED_TIMES_KEY_TEMPLATE = "{}.times.changed";
+        /*问答*/
+        String QA_LIKED_TIMES_KEY = "QA.times.changed";
+        /*笔记*/
+        String NOTE_LIKED_TIMES_KEY = "NOTE.times.changed";
 
         /*短信系统发送短信*/
         String SMS_MESSAGE = "sms.message";
@@ -61,5 +70,6 @@ public interface MqConstants {
         String PAY_SUCCESS = "pay.success";
         String REFUND_CHANGE = "refund.status.change";
 
+        String ORDER_DELAY_KEY = "delay.order.query";
     }
 }

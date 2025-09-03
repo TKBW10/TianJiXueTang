@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
 import com.tianji.common.autoconfigure.redisson.annotations.Lock;
+import com.tianji.common.autoconfigure.redisson.enums.LockStrategy;
 import com.tianji.common.constants.MqConstants;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
@@ -52,7 +53,7 @@ public class PayOrderServiceImpl extends ServiceImpl<PayOrderMapper, PayOrder> i
     private final RabbitMqHelper rabbitMqHelper;
 
     @Override
-    @Lock(formatter = PayConstants.RedisKeyFormatter.PAY_APPLY, time = 3)
+    @Lock(name = PayConstants.RedisKeyFormatter.PAY_APPLY, leaseTime = 3, autoUnlock = false)
     public String applyPayOrder(PayApplyDTO payApplyDTO) {
         log.debug("准备创建支付单，业务订单号：{}", payApplyDTO.getBizOrderNo());
         // 1.选择支付渠道
@@ -105,7 +106,7 @@ public class PayOrderServiceImpl extends ServiceImpl<PayOrderMapper, PayOrder> i
         // 2.初始化数据
         payOrder.setNotifyTimes(0);
         payOrder.setNotifyStatus(NotifyStatus.UN_CALL.getValue());
-        payOrder.setPayOverTime(LocalDateTime.now().minusMinutes(120L));
+        payOrder.setPayOverTime(LocalDateTime.now().plusMinutes(120L));
         payOrder.setStatus(PayStatus.NOT_COMMIT.getValue());
         return payOrder;
     }
@@ -138,6 +139,7 @@ public class PayOrderServiceImpl extends ServiceImpl<PayOrderMapper, PayOrder> i
             payOrder.setId(oldOrder.getId());
             payOrder.setQrCodeUrl("");
             updateById(payOrder);
+            payOrder.setPayOrderNo(oldOrder.getPayOrderNo());
             return payOrder;
         }
         // 6.旧单已经存在，且可能是未支付或未提交，且支付渠道一致，直接返回旧数据
@@ -204,13 +206,13 @@ public class PayOrderServiceImpl extends ServiceImpl<PayOrderMapper, PayOrder> i
         page.addOrder(new OrderItem("id", true));
         // 2.查询
         Page<PayOrder> result = lambdaQuery()
-                .eq(PayOrder::getStatus, PayStatus.WAIT_BUYER_PAY)
+                .eq(PayOrder::getStatus, PayStatus.WAIT_BUYER_PAY.getValue())
                 .page(page);
         return PageDTO.of(result);
     }
 
     @Override
-    @Lock(formatter = PayConstants.RedisKeyFormatter.PAY_ORDER_CHECK_TASK)
+    @Lock(name = PayConstants.RedisKeyFormatter.PAY_ORDER_CHECK_TASK, lockStrategy = LockStrategy.SKIP_AFTER_RETRY_TIMEOUT)
     public void checkPayOrder(PayOrder payOrder) {
         // 1.选择支付渠道
         IPayService payService = payServiceChannels.get(payOrder.getPayChannelCode());

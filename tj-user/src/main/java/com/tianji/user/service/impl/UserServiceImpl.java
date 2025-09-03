@@ -2,11 +2,12 @@ package com.tianji.user.service.impl;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.tianji.api.dto.auth.RoleDTO;
 import com.tianji.api.client.auth.AuthClient;
+import com.tianji.api.dto.auth.RoleDTO;
 import com.tianji.api.dto.user.LoginFormDTO;
 import com.tianji.api.dto.user.UserDTO;
 import com.tianji.common.domain.dto.LoginUserDTO;
+import com.tianji.common.enums.UserType;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.ForbiddenException;
 import com.tianji.common.exceptions.UnauthorizedException;
@@ -19,7 +20,6 @@ import com.tianji.user.domain.po.User;
 import com.tianji.user.domain.po.UserDetail;
 import com.tianji.user.domain.vo.UserDetailVO;
 import com.tianji.user.enums.UserStatus;
-import com.tianji.common.enums.UserType;
 import com.tianji.user.mapper.UserMapper;
 import com.tianji.user.service.ICodeService;
 import com.tianji.user.service.IUserDetailService;
@@ -70,9 +70,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         if (user == null) {
             throw new BadRequestException(ILLEGAL_LOGIN_TYPE);
         }
-        // 5.判断是否是后台用户
-        if (isStaff && user.getType() == UserType.STUDENT) {
-            throw new ForbiddenException(INVALID_USER_TYPE);
+        // 5.判断用户类型与登录方式是否匹配
+        if (isStaff ^ user.getType() != UserType.STUDENT) {
+            throw new BadRequestException(isStaff ? "非管理端用户" : "非学生端用户");
         }
         // 6.封装返回
         LoginUserDTO userDTO = new LoginUserDTO();
@@ -93,6 +93,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     public UserDetailVO myInfo() {
         // 1.获取登录用户id
         Long userId = UserContext.getUser();
+        if (userId == null) {
+            return null;
+        }
         // 2.查询用户
         UserDetail userDetail = detailService.queryById(userId);
         AssertUtils.isNotNull(userDetail, USER_ID_NOT_EXISTS);
@@ -179,6 +182,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         UserDetail detail = BeanUtils.toBean(userDTO, UserDetail.class);
         detail.setId(user.getId());
         detail.setType(type);
+        if(type == UserType.TEACHER){
+            detail.setRoleId(TEACHER_ROLE_ID);
+        }else{
+            if (userDTO.getRoleId() == null) {
+                throw new BadRequestException("员工角色信息不能为空");
+            }
+        }
         detailService.save(detail);
         return user.getId();
     }

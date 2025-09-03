@@ -8,10 +8,9 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * @ClassName CataSubjectsVO
- * @Author wusongsong
- * @Date 2022/8/15 16:04
- * @Version
+ * @author wusongsong
+ * @since 2022/8/15 16:04
+ * @version 1.0.0
  **/
 @Data
 @AllArgsConstructor
@@ -27,6 +26,6 @@ public class CataSimpleSubjectVO {
     @NoArgsConstructor
     public static class SubjectInfo{
         private Long id;
-        private String title;
+        private String name;
     }
 }

@@ -6,10 +6,9 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * @ClassName CourseSimpleInfoListDTO
- * @Author wusongsong
- * @Date 2022/7/26 9:26
- * @Version
+ * @author wusongsong
+ * @since 2022/7/26 9:26
+ * @version 1.0.0
  **/
 @Data
 public class CourseSimpleInfoListDTO {

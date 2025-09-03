@@ -1,10 +1,9 @@
 package com.tianji.course.constants;
 
 /**
- * @ClassName CourseErrorInfo
- * @Author wusongsong
- * @Date 2022/7/14 13:46
- * @Version
+ * @author wusongsong
+ * @since 2022/7/14 13:46
+ * @version 1.0.0
  **/
 public class CourseErrorInfo {
 
@@ -30,7 +29,7 @@ public class CourseErrorInfo {
         public static final String CATEGORY_DELETE_HAVE_COURSE = "该分类下含有课程，无法删除";
         public static final String CATEGORY_QUERY_ID_NULL = "查询目录信息，id为空";
         public static final String CATEGORY_DELETE_FAILD = "课程分类删除失败";
-        public static final String CATEGORY_ENABLE_CANNOT = "上一级分类禁用，当前分类无法启用";
+        public static final String CATEGORY_ENABLE_CANNOT = "当前上级分类为禁用状态，无法启用";
 
         public static final String SUBJECT_NAME_EXEISTS = "该题目已存在";
         public static final String SUBJECT_NO_DELETE_BY_USED = "当前题目已被引用，无法删除";
@@ -51,7 +50,8 @@ public class CourseErrorInfo {
         public static final String COURSE_SAVE_PRICE_NULL = "课程价格为空，请输入课程价格";
         public static final String COURSE_SAVE_PRICE_NEGATIVE = "课程价格为正数，请输入合法的课程价格";
         public static final String COURSE_SAVE_PRICE_FREE = "免费课程没有价格，可以填0";
-        public static final String COURSE_SAVE_PURCHASE_ILLEGAL = "课程开始购买时间不得晚于结束时间";
+        public static final String COURSE_SAVE_PURCHASE_ILLEGAL = "课程下架时间不得早于当前时间";
+        public static final String COURSE_SAVE_PURCHASE_ILLEGAL2 = "课程开始购买时间不得早于当前";
         public static final String COURSE_SAVE_NAME_EXISTS = "课程名称重复，请重新输入";
         public static final String COURSE_CATAS_SAVE_NAME_NULL = "章名称为空，请输入章名称";
         public static final String COURSE_CATAS_SAVE_NAME_SIZE = "章名称格格式错误，请重新输入";
@@ -70,7 +70,7 @@ public class CourseErrorInfo {
         public static final String COURSE_MEDIA_SAVE_NO_EXECUTE = "媒资当前不能保存";
         public static final String COURSE_MEDIA_SAVE_MEDIA_NULL = "部分章节未选择视频，请选择/上传视频";
         public static final String COURSE_MEDIA_SAVE_TRAILER_NULL = "有课程还没有选择是否支持试看";
-        public static final String COURSE_SUBJECT_SAVE_SUBJECT_IDS_NULL = "已选题目为空，请设置测试题目";
+        public static final String COURSE_SUBJECT_SAVE_SUBJECT_IDS_NULL = "阶段测试为空，请设置阶段测试题目";
         public static final String COURSE_SUBJECT_SAVE_CATALOGUE_ID_NULL = "题目未指定练习id";
         public static final String COURSE_TEACHER_SAVE_COURSE_ID_NULL = "课程id不能为空";
         public static final String COURSE_TEACHER_SAVE_TEACHERS_NULL = "请至少设置一名教师";
@@ -83,7 +83,7 @@ public class CourseErrorInfo {
 
         public static final String COURSE_UP_SHELF_INFO_INCOMPLETE = "课程信息未填写完，无法上架";
         public static final String COURSE_UP_SHELF_STATE_WRONG = "当前课程不能进行上架";
-        public static final String COURSE_UP_SHELF_PURCHASE_ILLEGAL = "课程周期早于当前时间，无法上架";
+        public static final String COURSE_UP_SHELF_PURCHASE_ILLEGAL = "下架时间需晚于当前时间";
         public static final String COURSE_UP_SHELF_SECTION_WITHOUT_MEDIA = "小节《{}》未上传媒资";
         public static final String COURSE_UP_SHELF_PRACTICE_WITHOUT_SUBJECT = "练习《{}》未上传题目";
         public static final String COURSE_UP_SHELF_NOT_FOUND_COURSE = "未找到对应的课程";
@@ -94,10 +94,5 @@ public class CourseErrorInfo {
         public static final String COURSE_CHECK_DOWN_SHELF = "课程已经下架";
         public static final String COURSE_CHECK_FINISHED = "课程已经完结";
         public static final String COURSE_CHECK_NO_SALE = "课程还未开始销售";
-    }
-
-    //错误码
-    public static class Code {
-
     }
 }

@@ -1,7 +1,7 @@
 package com.tianji.search.mq;
 
-import com.tianji.search.enums.CourseStatus;
 import com.tianji.search.service.ICourseService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import static com.tianji.common.constants.MqConstants.Exchange.COURSE_EXCHANGE;
 import static com.tianji.common.constants.MqConstants.Key.*;
 
+@Slf4j
 @Component
 public class CourseEventListener {
 
@@ -20,48 +21,31 @@ public class CourseEventListener {
     private ICourseService courseService;
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = "queue.course.new", durable = "true"),
-            exchange = @Exchange(name = COURSE_EXCHANGE, type = ExchangeTypes.TOPIC),
-            key = COURSE_NEW_KEY
-    ))
-    public void listenCourseNew(Long courseId){
-        courseService.handleNewCourse(courseId);
-    }
-
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = "queue.course.up", durable = "true"),
+            value = @Queue(name = "search.course.up.queue", durable = "true"),
             exchange = @Exchange(name = COURSE_EXCHANGE, type = ExchangeTypes.TOPIC),
             key = COURSE_UP_KEY
     ))
     public void listenCourseUp(Long courseId){
+        log.debug("监听到课程{}上架", courseId);
         courseService.handleCourseUp(courseId);
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = "queue.course.down", durable = "true"),
+            value = @Queue(name = "search.course.down.queue", durable = "true"),
             exchange = @Exchange(name = COURSE_EXCHANGE, type = ExchangeTypes.TOPIC),
             key = COURSE_DOWN_KEY
     ))
     public void listenCourseDown(Long courseId){
-        courseService.handleCourseStatus(courseId, CourseStatus.NO_LONGER_BE_SOLD);
+        log.debug("监听到课程{}下架", courseId);
+        courseService.handleCourseDelete(courseId);
     }
 
     @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = "queue.course.expire", durable = "true"),
+            value = @Queue(name = "search.course.expire.queue", durable = "true"),
             exchange = @Exchange(name = COURSE_EXCHANGE, type = ExchangeTypes.TOPIC),
             key = COURSE_EXPIRE_KEY
     ))
     public void listenCourseExpire(Long courseId){
-        courseService.handleCourseStatus(courseId, CourseStatus.EXPIRED);
-    }
-
-    @RabbitListener(bindings = @QueueBinding(
-            value = @Queue(name = "queue.course.del", durable = "true"),
-            exchange = @Exchange(name = COURSE_EXCHANGE, type = ExchangeTypes.TOPIC),
-            key = COURSE_DELETE_KEY
-    ))
-    public void listenCourseDelete(Long courseId){
         courseService.handleCourseDelete(courseId);
     }
-
 }
